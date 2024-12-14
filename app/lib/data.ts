@@ -91,26 +91,26 @@ export async function fetchFilteredInvoices(
 	const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
 	try {
-		const invoices = await sql<InvoicesTable>`
+		const invoices = await sql.query<InvoicesTable>(`
       SELECT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-    `;
+    invoices.id,
+    invoices.amount,
+    invoices.date,
+    invoices.status,
+    customers.name,
+    customers.email,
+    customers.image_url
+  FROM invoices
+  JOIN customers ON invoices.customer_id = customers.id
+  WHERE
+    customers.name LIKE ${`%${query}%`} OR
+    customers.email LIKE ${`%${query}%`} OR
+    invoices.amount::text LIKE ${`%${query}%`} OR
+    invoices.date::text LIKE ${`%${query}%`} OR
+    invoices.status LIKE ${`%${query}%`}
+  ORDER BY invoices.date DESC
+  LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `);
 
 		return invoices.rows;
 	} catch (error) {
@@ -121,7 +121,7 @@ export async function fetchFilteredInvoices(
 
 export async function fetchInvoicesPages(query: string) {
 	try {
-		const count = await sql`SELECT COUNT(*)
+		const count = await sql.query(`SELECT COUNT(*)
     FROM invoices
     JOIN customers ON invoices.customer_id = customers.id
     WHERE
@@ -130,10 +130,10 @@ export async function fetchInvoicesPages(query: string) {
       invoices.amount::text ILIKE ${`%${query}%`} OR
       invoices.date::text ILIKE ${`%${query}%`} OR
       invoices.status ILIKE ${`%${query}%`}
-  `;
+  `);
 
 		const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
-		return totalPages;
+		return totalPages || 1;
 	} catch (error) {
 		console.error('Database Error:', error);
 		throw new Error('Failed to fetch total number of invoices.');
@@ -142,7 +142,7 @@ export async function fetchInvoicesPages(query: string) {
 
 export async function fetchInvoiceById(id: string) {
 	try {
-		const data = await sql<InvoiceForm>`
+		const data = await sql.query<InvoiceForm>(`
       SELECT
         invoices.id,
         invoices.customer_id,
@@ -150,7 +150,7 @@ export async function fetchInvoiceById(id: string) {
         invoices.status
       FROM invoices
       WHERE invoices.id = ${id};
-    `;
+    `);
 
 		const invoice = data.rows.map(invoice => ({
 			...invoice,
@@ -167,13 +167,13 @@ export async function fetchInvoiceById(id: string) {
 
 export async function fetchCustomers() {
 	try {
-		const data = await sql<CustomerField>`
+		const data = await sql.query<CustomerField>(`
       SELECT
         id,
         name
       FROM customers
       ORDER BY name ASC
-    `;
+    `);
 
 		const customers = data.rows;
 		return customers;
